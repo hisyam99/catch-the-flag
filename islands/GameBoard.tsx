@@ -4,21 +4,21 @@ import { connectWebSocket, sendMove } from "../utils/websocket.ts";
 
 interface PlayerInfo {
   id: string;
-  profileImage: string;
+  color: string;
 }
 
-export default function GameBoard({ sessionId }: { sessionId: string }) {
+export default function GameBoard() {
   const [board, setBoard] = useState(Array(16).fill(null));
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerProfileImage, setPlayerProfileImage] = useState<string | null>(null);
+  const [playerColor, setPlayerColor] = useState<string | null>(null);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (IS_BROWSER) {
-      const { socket, error } = connectWebSocket(sessionId);
+      const { socket, error } = connectWebSocket();
 
       if (error) {
         setError(`WebSocket connection failed: ${error}`);
@@ -36,10 +36,11 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
             setWinner(data.winner);
           } else if (data.type === "playerInfo") {
             setPlayerId(data.id);
-            setPlayerProfileImage(data.profileImage);
+            setPlayerColor(data.color);
           }
         };
 
+        // Correctly handle WebSocket errors using a type check
         socket.onerror = (e: Event) => {
           if (e instanceof ErrorEvent) {
             setError(`WebSocket error: ${e.message}`);
@@ -51,7 +52,7 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
         return () => socket.close();
       }
     }
-  }, [sessionId]);
+  }, []);
 
   const handleCellClick = (index: number) => {
     if (board[index] === null && !winner && playerId) {
@@ -59,10 +60,10 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
     }
   };
 
-  const getPlayerProfileImage = (id: string | null) => {
-    if (id === null) return "/api/placeholder/32/32";
+  const getPlayerColor = (id: string | null) => {
+    if (id === null) return "#FFFFFF";
     const player = players.find(p => p.id === id);
-    return player ? player.profileImage : "/api/placeholder/32/32";
+    return player ? player.color : "#000000";
   };
 
   if (error) {
@@ -81,11 +82,10 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
             onClick={() => handleCellClick(index)}
           >
             {cell && cell !== "winner" && (
-              <img
-                src={getPlayerProfileImage(cell)}
-                alt="Player"
+              <div
                 class="w-12 h-12 rounded-full"
-              />
+                style={{ backgroundColor: getPlayerColor(cell) }}
+              ></div>
             )}
           </div>
         ))}
@@ -102,7 +102,7 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
         )}
       </div>
       <div class="mt-2">
-        Your profile image: <img src={playerProfileImage || "/api/placeholder/32/32"} alt="Your profile" class="inline-block w-8 h-8 rounded-full" />
+        Your color: <div class="inline-block w-4 h-4 rounded-full" style={{ backgroundColor: playerColor || "#000000" }}></div>
       </div>
     </div>
   );

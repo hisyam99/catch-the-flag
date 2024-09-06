@@ -1,12 +1,13 @@
+// routes/api/game.ts
 import { Handlers } from "$fresh/server.ts";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
-import { getUserProfileFromSession, getUserSessionId } from "../../plugins/kv_oauth.ts";
 
 const GAME_DURATION = 60000; // 60 seconds
+const COLORS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500", "#800080"];
 
 interface Player {
   id: string;
-  profileImage: string;
+  color: string;
   socket: WebSocket;
 }
 
@@ -31,7 +32,7 @@ function broadcastGameState() {
     type: "boardUpdate",
     board: gameState.board,
     timeLeft: Math.max(0, Math.floor((gameState.gameEndTime - Date.now()) / 1000)),
-    players: Array.from(gameState.players.values()).map(p => ({ id: p.id, profileImage: p.profileImage })),
+    players: Array.from(gameState.players.values()).map(p => ({ id: p.id, color: p.color })),
   });
   for (const player of gameState.players.values()) {
     player.socket.send(message);
@@ -94,35 +95,29 @@ function broadcastWinner() {
   }
 }
 
+function generatePlayerId(): string {
+  return crypto.randomUUID();
+}
+
 export const handler: Handlers = {
-  async GET(req) {
-    const sessionId = await getUserSessionId(req);
-    
-    if (!sessionId) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    const userProfile = await getUserProfileFromSession(sessionId);
-    if (!userProfile) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
+  GET(req) {
     const { socket, response } = Deno.upgradeWebSocket(req);
-    const playerId = userProfile.id;
-    const profileImage = userProfile.picture || "/api/placeholder/32/32";
+    const playerId = generatePlayerId();
+    const playerColor = COLORS[gameState.players.size % COLORS.length];
 
     const player: Player = {
       id: playerId,
-      profileImage: profileImage,
+      color: playerColor,
       socket: socket,
     };
 
     gameState.players.set(playerId, player);
 
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "playerInfo", id: playerId, profileImage: profileImage }));
+      socket.send(JSON.stringify({ type: "playerInfo", id: playerId, color: playerColor }));
       broadcastGameState();
 
+      // Start a new game if there isn't one running and we have at least one player
       if (!gameState.isGameRunning && gameState.players.size === 1) {
         startNewGame();
       }
