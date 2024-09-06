@@ -6,7 +6,11 @@ export function connectWebSocket(): { socket: WebSocket | null; error: string | 
       return { socket, error: null };
     }
 
-    socket = new WebSocket(`ws://${window.location.host}/api/game`);
+    // Determine the WebSocket protocol based on the current page protocol
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    
+    socket = new WebSocket(`${protocol}//${host}/api/game`);
     
     socket.onopen = () => {
       console.log("WebSocket connected");

@@ -7,7 +7,6 @@ import * as $_app from "./routes/_app.tsx";
 import * as $api_avatar_address_ from "./routes/api/avatar/[address].ts";
 import * as $api_game from "./routes/api/game.ts";
 import * as $index from "./routes/index.tsx";
-import * as $Counter from "./islands/Counter.tsx";
 import * as $GameBoard from "./islands/GameBoard.tsx";
 import { type Manifest } from "$fresh/server.ts";
 
@@ -20,7 +19,6 @@ const manifest = {
     "./routes/index.tsx": $index,
   },
   islands: {
-    "./islands/Counter.tsx": $Counter,
     "./islands/GameBoard.tsx": $GameBoard,
   },
   baseUrl: import.meta.url,
