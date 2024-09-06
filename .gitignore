@@ -4,6 +4,7 @@
 .env.test.local
 .env.production.local
 .env.local
+Deno.env
 
 # Fresh build directory
 _fresh/
