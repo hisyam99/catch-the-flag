@@ -7,6 +7,7 @@ import * as $_app from "./routes/_app.tsx";
 import * as $api_avatar_address_ from "./routes/api/avatar/[address].ts";
 import * as $api_game from "./routes/api/game.ts";
 import * as $index from "./routes/index.tsx";
+import * as $login from "./routes/login.tsx";
 import * as $GameBoard from "./islands/GameBoard.tsx";
 import { type Manifest } from "$fresh/server.ts";
 
@@ -17,6 +18,7 @@ const manifest = {
     "./routes/api/avatar/[address].ts": $api_avatar_address_,
     "./routes/api/game.ts": $api_game,
     "./routes/index.tsx": $index,
+    "./routes/login.tsx": $login,
   },
   islands: {
     "./islands/GameBoard.tsx": $GameBoard,
