@@ -1,16 +1,15 @@
 let socket: WebSocket | null = null;
 
-export function connectWebSocket(): { socket: WebSocket | null; error: string | null } {
+export function connectWebSocket(sessionId: string): { socket: WebSocket | null; error: string | null } {
   try {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return { socket, error: null };
     }
 
-    // Determine the WebSocket protocol based on the current page protocol
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     
-    socket = new WebSocket(`${protocol}//${host}/api/game`);
+    socket = new WebSocket(`${protocol}//${host}/api/game?sessionId=${sessionId}`);
     
     socket.onopen = () => {
       console.log("WebSocket connected");
