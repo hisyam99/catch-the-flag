@@ -29,6 +29,8 @@ export const handler: Handlers = {
 export default function Home({ data }: PageProps) {
   const { sessionId, userProfile } = data;
 
+  const boardSize = 4; // Set the desired board size here
+
   return (
     <>
       <Head>
@@ -38,12 +40,12 @@ export default function Home({ data }: PageProps) {
         <div class="flex justify-between items-center mb-4">
           <h1 class="text-4xl font-bold">Catch the Flag</h1>
           <div class="flex items-center">
-            <img src={userProfile.picture || "/api/placeholder/32/32"} alt={userProfile.name} class="w-8 h-8 rounded-full mr-2" />
+            <img src={userProfile.picture || "/img/avatar.webp"} alt={userProfile.name} class="w-8 h-8 rounded-full mr-2" />
             <span class="mr-4">{userProfile.name}</span>
             <a href="/signout" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Sign Out</a>
           </div>
         </div>
-        <GameBoard sessionId={sessionId} />
+        <GameBoard sessionId={sessionId} boardSize={boardSize} /> {/* Pass boardSize to GameBoard */}
       </div>
     </>
   );

@@ -7,14 +7,22 @@ interface PlayerInfo {
   profileImage: string;
 }
 
-export default function GameBoard({ sessionId }: { sessionId: string }) {
-  const [board, setBoard] = useState(Array(16).fill(null));
+interface GameBoardProps {
+  sessionId: string;
+  boardSize: number; // Add this new prop for board size
+}
+
+export default function GameBoard({ sessionId, boardSize }: GameBoardProps) {
+  const [board, setBoard] = useState(Array(boardSize * boardSize).fill(null)); // Adjust board size dynamically
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerProfileImage, setPlayerProfileImage] = useState<string | null>(null);
+  const [playerProfileImage, setPlayerProfileImage] = useState<string | null>(
+    null,
+  );
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   useEffect(() => {
     if (IS_BROWSER) {
@@ -34,9 +42,14 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
             setPlayers(data.players);
           } else if (data.type === "winner") {
             setWinner(data.winner);
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000);
           } else if (data.type === "playerInfo") {
             setPlayerId(data.id);
             setPlayerProfileImage(data.profileImage);
+          } else if (data.type === "loggedInElsewhere") {
+            setShowLoginPopup(true);
           }
         };
 
@@ -60,18 +73,41 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
   };
 
   const getPlayerProfileImage = (id: string | null) => {
-    if (id === null) return "/api/placeholder/32/32";
-    const player = players.find(p => p.id === id);
-    return player ? player.profileImage : "/api/placeholder/32/32";
+    if (id === null) return "/img/avatar.webp";
+    const player = players.find((p) => p.id === id);
+    return player ? player.profileImage : "/img/avatar.webp";
   };
 
   if (error) {
     return <div class="text-red-500">{error}</div>;
   }
 
+  if (showLoginPopup) {
+    return (
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg text-center">
+          <h2 class="text-2xl font-bold mb-4">Logged in from Another Device</h2>
+          <p class="mb-4">
+            You have been logged in from another device. This session will be
+            terminated.
+          </p>
+          <button
+            onClick={() => window.location.href = "/login"}
+            class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div class="mt-4">
-      <div class="grid grid-cols-4 gap-2">
+      <div
+        class="grid gap-2"
+        style={`grid-template-columns: repeat(${boardSize}, minmax(0, 1fr));`} // Dinamis untuk membentuk grid persegi
+      >
         {board.map((cell, index) => (
           <div
             key={index}
@@ -91,18 +127,29 @@ export default function GameBoard({ sessionId }: { sessionId: string }) {
         ))}
       </div>
       <div class="mt-4">
-        {winner ? (
-          winner === playerId ? (
-            <div class="text-2xl font-bold text-green-500 animate-bounce">You won! 🎉</div>
-          ) : (
-            <div class="text-xl text-red-500">You didn't win. Try again in the next round.</div>
+        {winner
+          ? (
+            winner === playerId
+              ? (
+                <div class="text-2xl font-bold text-green-500 animate-bounce">
+                  You won! 🎉
+                </div>
+              )
+              : (
+                <div class="text-xl text-red-500">
+                  You didn't win. Try again in the next round.
+                </div>
+              )
           )
-        ) : (
-          <div>Time left: {timeLeft} seconds</div>
-        )}
+          : <div>Time left: {timeLeft} seconds</div>}
       </div>
       <div class="mt-2">
-        Your profile image: <img src={playerProfileImage || "/api/placeholder/32/32"} alt="Your profile" class="inline-block w-8 h-8 rounded-full" />
+        Your profile image:{" "}
+        <img
+          src={playerProfileImage || "/img/avatar.webp"}
+          alt="Your profile"
+          class="inline-block w-8 h-8 rounded-full"
+        />
       </div>
     </div>
   );
