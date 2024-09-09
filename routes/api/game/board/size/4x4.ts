@@ -3,7 +3,7 @@ import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 import {
   getUserProfileFromSession,
   getUserSessionId,
-} from "../../plugins/kv_oauth.ts";
+} from "@/plugins/kv_oauth.ts";
 
 const GAME_DURATION = 60000; // 60 seconds
 

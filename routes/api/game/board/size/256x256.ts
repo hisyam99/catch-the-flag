@@ -3,7 +3,7 @@ import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 import {
   getUserProfileFromSession,
   getUserSessionId,
-} from "../../plugins/kv_oauth.ts";
+} from "@/plugins/kv_oauth.ts";
 
 const GAME_DURATION = 60000; // 60 seconds
 
@@ -22,7 +22,7 @@ interface GameState {
 }
 
 let gameState: GameState = {
-  board: Array(16).fill(null),
+  board: Array(256 * 256).fill(null),
   players: new Map<string, Player>(),
   winner: null,
   gameEndTime: 0,
@@ -48,7 +48,7 @@ function broadcastGameState() {
 }
 
 function startNewGame() {
-  gameState.board = Array(16).fill(null);
+  gameState.board = Array(256 * 256).fill(null);
   gameState.winner = null;
   gameState.gameEndTime = Date.now() + GAME_DURATION;
   gameState.isGameRunning = true;
@@ -89,7 +89,7 @@ function endGame() {
       ];
     } else {
       winningIndex = Math.floor(
-        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * 16,
+        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * 65536,
       );
     }
 

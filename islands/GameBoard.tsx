@@ -9,11 +9,12 @@ interface PlayerInfo {
 
 interface GameBoardProps {
   sessionId: string;
-  boardSize: number; // Add this new prop for board size
+  boardSize: number;
 }
 
-export default function GameBoard({ sessionId, boardSize }: GameBoardProps) {
-  const [board, setBoard] = useState(Array(boardSize * boardSize).fill(null)); // Adjust board size dynamically
+export default function GameBoard({ sessionId }: GameBoardProps) {
+  const [boardSize, setBoardSize] = useState(4); // Default size 4x4
+  const [board, setBoard] = useState(Array(boardSize * boardSize).fill(null));
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function GameBoard({ sessionId, boardSize }: GameBoardProps) {
 
   useEffect(() => {
     if (IS_BROWSER) {
-      const { socket, error } = connectWebSocket(sessionId);
+      const { socket, error } = connectWebSocket(sessionId, boardSize);
 
       if (error) {
         setError(`WebSocket connection failed: ${error}`);
@@ -64,12 +65,18 @@ export default function GameBoard({ sessionId, boardSize }: GameBoardProps) {
         return () => socket.close();
       }
     }
-  }, [sessionId]);
+  }, [sessionId, boardSize]);
 
   const handleCellClick = (index: number) => {
     if (board[index] === null && !winner && playerId) {
       sendMove(index, playerId);
     }
+  };
+
+  const handleBoardSizeChange = (event: Event) => {
+    const newSize = parseInt((event.target as HTMLSelectElement).value, 10);
+    setBoardSize(newSize);
+    setBoard(Array(newSize * newSize).fill(null));
   };
 
   const getPlayerProfileImage = (id: string | null) => {
@@ -104,23 +111,40 @@ export default function GameBoard({ sessionId, boardSize }: GameBoardProps) {
 
   return (
     <div class="mt-4">
+      {/* Dropdown for selecting board size */}
+      <div class="mb-4">
+        <label for="boardSize" class="mr-2 font-bold">Board Size:</label>
+        <select
+          id="boardSize"
+          value={boardSize}
+          onChange={handleBoardSizeChange}
+          class="border rounded p-2"
+        >
+          <option value="4">4x4 (16)</option>
+          <option value="16">16x16 (256)</option>
+          <option value="256">256x256 (65536)</option>
+          <option value="1024">1024x1024 (1048576)</option>
+        </select>
+      </div>
+
       <div
         class="grid gap-2"
-        style={`grid-template-columns: repeat(${boardSize}, minmax(0, 1fr));`} // Dinamis untuk membentuk grid persegi
+        style={`grid-template-columns: repeat(${boardSize}, 1fr); grid-auto-rows: 1fr;`}
       >
         {board.map((cell, index) => (
           <div
             key={index}
-            class={`w-16 h-16 border-2 border-gray-300 flex items-center justify-center cursor-pointer ${
+            class={`border-2 border-gray-300 flex items-center justify-center cursor-pointer ${
               cell === "winner" ? "bg-red-500 animate-pulse" : ""
             }`}
             onClick={() => handleCellClick(index)}
+            style="aspect-ratio: 1;"
           >
             {cell && cell !== "winner" && (
               <img
                 src={getPlayerProfileImage(cell)}
                 alt="Player"
-                class="w-12 h-12 rounded-full"
+                class="w-3/4 h-3/4 rounded-full"
               />
             )}
           </div>
