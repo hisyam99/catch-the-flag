@@ -2,7 +2,6 @@ import {
     createFacebookOAuthConfig,
     createGoogleOAuthConfig,
     createHelpers,
-    handleCallback,
 } from "@deno/kv-oauth";
 import type { Plugin } from "$fresh/server.ts";
 
@@ -94,43 +93,42 @@ export default {
         {
             path: "/google/callback",
             async handler(req) {
-              const { response, sessionId, tokens } = await handleCallback(req, googleOAuthConfig);
-              if (tokens.accessToken && sessionId) {
-                const profile = await getUserProfile("google", tokens.accessToken);
-                await setUserProfile(sessionId, profile);
-              }
-              response.headers.set("Location", "/");
-              return response;
+                const { response, sessionId, tokens } = await googleHelpers.handleCallback(req);
+                if (tokens.accessToken && sessionId) {
+                    const profile = await getUserProfile("google", tokens.accessToken);
+                    await setUserProfile(sessionId, profile);
+                }
+                response.headers.set("Location", "/");
+                return response;
             },
-          },
-          {
+        },
+        {
             path: "/facebook/callback",
             async handler(req) {
-              const { response, sessionId, tokens } = await handleCallback(req, facebookOAuthConfig);
-              if (tokens.accessToken && sessionId) {
-                const profile = await getUserProfile("facebook", tokens.accessToken);
-                await setUserProfile(sessionId, profile);
-              }
-              response.headers.set("Location", "/");
-              return response;
+                const { response, sessionId, tokens } = await facebookHelpers.handleCallback(req);
+                if (tokens.accessToken && sessionId) {
+                    const profile = await getUserProfile("facebook", tokens.accessToken);
+                    await setUserProfile(sessionId, profile);
+                }
+                response.headers.set("Location", "/");
+                return response;
             },
-          },
-          {
+        },
+        {
             path: "/signout",
             async handler(req) {
-              const sessionId = await getUserSessionId(req);
-              if (sessionId) {
-                const kv = await Deno.openKv();
-                await kv.delete(["userProfiles", sessionId]);
-              }
-              return await googleHelpers.signOut(req);
+                const sessionId = await getUserSessionId(req);
+                if (sessionId) {
+                    const kv = await Deno.openKv();
+                    await kv.delete(["userProfiles", sessionId]);
+                }
+                return await googleHelpers.signOut(req);
             },
-          },
+        },
         {
             path: "/protected",
             async handler(req) {
-                const sessionId = await googleHelpers.getSessionId(req) ||
-                    await facebookHelpers.getSessionId(req);
+                const sessionId = await getUserSessionId(req);
                 if (sessionId === undefined) {
                     return new Response("Unauthorized", { status: 401 });
                 }
@@ -146,8 +144,7 @@ export default {
         {
             path: "/api/profile",
             async handler(req) {
-                const sessionId = await googleHelpers.getSessionId(req) ||
-                    await facebookHelpers.getSessionId(req);
+                const sessionId = await getUserSessionId(req);
                 if (sessionId === undefined) {
                     return new Response("Unauthorized", { status: 401 });
                 }
