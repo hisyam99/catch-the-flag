@@ -3,11 +3,9 @@ import { Handlers } from "$fresh/server.ts";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 const GAME_DURATION = 60000; // 60 seconds
-const COLORS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500", "#800080"];
 
 interface Player {
   id: string;
-  color: string;
   socket: WebSocket;
 }
 
@@ -94,18 +92,16 @@ export const handler: Handlers = {
   GET(req) {
     const { socket, response } = Deno.upgradeWebSocket(req);
     const playerId = generatePlayerId();
-    const playerColor = COLORS[gameState.players.size % COLORS.length];
 
     const player: Player = {
       id: playerId,
-      color: playerColor,
       socket: socket,
     };
 
     gameState.players.set(playerId, player);
 
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "playerInfo", id: playerId, color: playerColor }));
+      socket.send(JSON.stringify({ type: "playerInfo", id: playerId }));
       socket.send(JSON.stringify({
         type: "boardUpdate",
         board: gameState.board,

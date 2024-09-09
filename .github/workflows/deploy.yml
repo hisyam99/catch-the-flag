@@ -15,6 +15,9 @@ jobs:
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       FACEBOOK_CLIENT_ID: ${{ secrets.FACEBOOK_CLIENT_ID }}
       FACEBOOK_CLIENT_SECRET: ${{ secrets.FACEBOOK_CLIENT_SECRET }}
+      CLERK_DOMAIN: ${{ secrets.CLERK_DOMAIN }}
+      CLERK_CLIENT_ID: ${{ secrets.CLERK_CLIENT_ID }}
+      CLERK_CLIENT_SECRET: ${{ secrets.CLERK_CLIENT_SECRET }}
 
     permissions:
       id-token: write # Needed for auth with Deno Deploy

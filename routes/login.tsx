@@ -16,10 +16,10 @@ export default function Login() {
                         Login with Google
                     </a>
                     <a
-                        href="/signin/facebook"
+                        href="/signin/clerk"
                         class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded text-center"
                     >
-                        Login with Facebook
+                        Login with Clerk
                     </a>
                 </div>
             </div>
