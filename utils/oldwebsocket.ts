@@ -9,11 +9,7 @@ export const connectWebSocket = (sessionId: string, boardSize: number): { socket
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
 
-    // Tentukan URL WebSocket berdasarkan ukuran board
-    let websocketUrl = `${protocol}//${host}/api/game4x4?sessionId=${sessionId}&boardSize=${boardSize}`;
-    if (boardSize === 16) {
-      websocketUrl = `${protocol}//${host}/api/game16x16?sessionId=${sessionId}&boardSize=${boardSize}`;
-    }
+    const websocketUrl = `${protocol}//${host}/api/game?sessionId=${sessionId}&boardSize=${boardSize}`;
 
     socket = new WebSocket(websocketUrl);
 

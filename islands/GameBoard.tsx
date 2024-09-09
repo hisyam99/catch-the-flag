@@ -129,7 +129,12 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
 
       <div
         class="grid gap-2"
-        style={`grid-template-columns: repeat(${boardSize}, 1fr); grid-auto-rows: 1fr;`}
+        style={`
+      grid-template-columns: repeat(${boardSize === 4 ? 4 : 16}, 1fr); 
+      grid-template-rows: repeat(${
+          boardSize === 4 ? 4 : Math.ceil(boardSize / 16)
+        }, 1fr);
+    `}
       >
         {board.map((cell, index) => (
           <div
@@ -150,6 +155,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
           </div>
         ))}
       </div>
+
       <div class="mt-4">
         {winner
           ? (
@@ -167,6 +173,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
           )
           : <div>Time left: {timeLeft} seconds</div>}
       </div>
+
       <div class="mt-2">
         Your profile image:{" "}
         <img
