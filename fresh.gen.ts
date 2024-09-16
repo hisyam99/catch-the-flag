@@ -8,6 +8,7 @@ import * as $api_game_board_size_1024x1024 from "./routes/api/game/board/size/10
 import * as $api_game_board_size_16x16 from "./routes/api/game/board/size/16x16.ts";
 import * as $api_game_board_size_256x256 from "./routes/api/game/board/size/256x256.ts";
 import * as $api_game_board_size_4x4 from "./routes/api/game/board/size/4x4.ts";
+import * as $api_game_board_size_old_api from "./routes/api/game/board/size/old_api.ts";
 import * as $index from "./routes/index.tsx";
 import * as $login from "./routes/login.tsx";
 import * as $BoardSizeSelector from "./islands/BoardSizeSelector.tsx";
@@ -22,6 +23,7 @@ const manifest = {
     "./routes/api/game/board/size/16x16.ts": $api_game_board_size_16x16,
     "./routes/api/game/board/size/256x256.ts": $api_game_board_size_256x256,
     "./routes/api/game/board/size/4x4.ts": $api_game_board_size_4x4,
+    "./routes/api/game/board/size/old_api.ts": $api_game_board_size_old_api,
     "./routes/index.tsx": $index,
     "./routes/login.tsx": $login,
   },

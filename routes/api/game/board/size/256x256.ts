@@ -5,163 +5,218 @@ import {
   getUserSessionId,
 } from "@/plugins/kv_oauth.ts";
 
+// Constants
 // Game duration in milliseconds (1 minute)
 const GAME_DURATION = 60000;
 
-// Interface representing a player object
+// Interfaces
+
+/**
+ * Represents a player in the game
+ */
 interface Player {
-  id: string;              // Unique ID for the player (from OAuth profile)
-  profileImage: string;    // URL to the player's profile image
-  socket: WebSocket;       // WebSocket connection for real-time communication
+  id: string;
+  profileImage: string;
+  socket: WebSocket;
 }
 
-// Interface representing the overall state of the game
+/**
+ * Represents the overall state of the game
+ */
 interface GameState {
-  players: Map<string, Player>;  // Collection of connected players, keyed by their ID
-  winner: string | null;         // ID of the winning player (or null if no winner yet)
-  gameEndTime: number;           // Timestamp indicating when the current game ends
-  isGameRunning: boolean;        // Flag to track if a game is currently active
+  players: Map<string, Player>;
+  winner: string | null;
+  winningCell: number | null;
+  gameEndTime: number;
+  isGameRunning: boolean;
 }
 
-// Bitmask representing the game board, where each bit corresponds to a cell in the 256x256 grid (256 * 256 cells total)
+// Game state variables
+
+/**
+ * Bitmask representation of the game board
+ * Each bit represents a cell, 1 if filled, 0 if empty
+ */
 let bitmaskBoard: number = 0;
 
-// Array representing player ownership for each cell on the board (256 * 256 cells), initialized to null (no ownership)
+/**
+ * Array representation of the game board
+ * Each element is either null (empty) or a player's ID
+ */
 let playerBoard: (string | null)[] = Array(256 * 256).fill(null);
 
-// Initial state of the game
+/**
+ * The current state of the game
+ */
 const gameState: GameState = {
-  players: new Map<string, Player>(),  // No players initially connected
-  winner: null,                        // No winner initially
-  gameEndTime: 0,                      // Game end time not set initially
-  isGameRunning: false,                // Game is not running initially
+  players: new Map<string, Player>(),
+  winner: null,
+  winningCell: null,
+  gameEndTime: 0,
+  isGameRunning: false,
 };
 
-// Function to check if a specific cell on the board has already been filled
+/**
+ * Checks if a cell is filled
+ * @param index - The index of the cell to check
+ * @returns True if the cell is filled, false otherwise
+ */
 function isCellFilled(index: number): boolean {
-  return (bitmaskBoard & (1 << index)) !== 0;  // Use bitmask to check if the cell is occupied
+  return (bitmaskBoard & (1 << index)) !== 0;
 }
 
-// Function to fill a specific cell on the board with a player's ID
+/**
+ * Fills a cell with a player's move
+ * @param index - The index of the cell to fill
+ * @param playerId - The ID of the player making the move
+ */
 function fillCell(index: number, playerId: string) {
-  bitmaskBoard |= 1 << index;           // Set the corresponding bit in the bitmask
-  playerBoard[index] = playerId;        // Mark the cell with the player's ID
+  bitmaskBoard |= 1 << index;
+  playerBoard[index] = playerId;
 }
 
-// Function to broadcast the current game state to all connected players via WebSocket
+/**
+ * Broadcasts the current game state to all connected players
+ */
 function broadcastGameState() {
   const message = JSON.stringify({
-    type: "boardUpdate",  // Message type indicating a board update
-    board: playerBoard,   // The current state of the board (which player owns which cell)
+    type: "boardUpdate",
+    board: playerBoard,
     timeLeft: Math.max(
       0,
-      Math.floor((gameState.gameEndTime - Date.now()) / 1000),  // Remaining game time in seconds
+      Math.floor((gameState.gameEndTime - Date.now()) / 1000),
     ),
     players: Array.from(gameState.players.values()).map((p) => ({
-      id: p.id,             // Player ID
-      profileImage: p.profileImage,  // Player's profile image
+      id: p.id,
+      profileImage: p.profileImage,
     })),
+    winningCell: gameState.winningCell,
+    winner: gameState.winner,
   });
 
-  // Send the game state to all connected players
   for (const player of gameState.players.values()) {
     player.socket.send(message);
   }
 }
 
-// Function to start a new game
+/**
+ * Starts a new game
+ */
 function startNewGame() {
-  // Reset game board and state
-  bitmaskBoard = 0;                         // Reset the bitmask board to 0 (no cells filled)
-  playerBoard = Array(256 * 256).fill(null);       // Clear the player ownership board
-  gameState.winner = null;                  // No winner initially
-  gameState.gameEndTime = Date.now() + GAME_DURATION;  // Set the game end time to current time + game duration
-  gameState.isGameRunning = true;           // Mark that the game is running
+  // Reset game state
+  bitmaskBoard = 0;
+  playerBoard = Array(256 * 256).fill(null);
+  gameState.winner = null;
+  gameState.winningCell = null;
+  gameState.gameEndTime = Date.now() + GAME_DURATION;
+  gameState.isGameRunning = true;
 
-  // Broadcast the updated game state to all players
   broadcastGameState();
 
-  // Set up a periodic interval to update and broadcast the game state every second
+  // Set up interval to broadcast game state every second
   const gameInterval = setInterval(() => {
     const timeLeft = Math.max(
       0,
-      Math.floor((gameState.gameEndTime - Date.now()) / 1000),  // Calculate time left in seconds
+      Math.floor((gameState.gameEndTime - Date.now()) / 1000),
     );
     if (timeLeft > 0) {
-      broadcastGameState();  // Broadcast the game state if time is remaining
+      broadcastGameState();
     } else {
-      clearInterval(gameInterval);  // Clear interval if time has run out
-      endGame();  // End the game
+      clearInterval(gameInterval);
+      endGame();
     }
   }, 1000);
 
-  // Ensure the game ends after the full game duration, even if no one has won
+  // Set up timeout to end the game after GAME_DURATION
   setTimeout(() => {
-    clearInterval(gameInterval);  // Clear interval to stop updates
-    endGame();  // End the game
+    clearInterval(gameInterval);
+    endGame();
   }, GAME_DURATION);
 }
 
-// Function to end the game and declare a winner (if any)
+/**
+ * Ends the current game
+ */
 function endGame() {
-  // If no winner has been declared, randomly select a winner
-  if (!gameState.winner) {
-    const winningIndex = Math.floor(
-      crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * (256 * 256),  // Randomly pick a winning cell index
-    );
-    gameState.winner = playerBoard[winningIndex];  // Set the winner to the player who owns the selected cell
-    playerBoard[winningIndex] = "winner";          // Mark the winning cell on the board
+  const allCellsFilled = bitmaskBoard === 0xFFFF;
+  const timeIsUp = Date.now() >= gameState.gameEndTime;
+
+  if (allCellsFilled || timeIsUp) {
+    // Get all filled cell indices
+    const filledCells = playerBoard.reduce((acc, cell, index) => 
+      cell !== null ? [...acc, index] : acc, [] as number[]);
+    
+    if (filledCells.length > 0) {
+      // Randomly select a winning cell from filled cells
+      const randomIndex = Math.floor(
+        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * filledCells.length
+      );
+      gameState.winningCell = filledCells[randomIndex];
+      gameState.winner = playerBoard[gameState.winningCell];
+    } else {
+      // If no cells are filled, randomly select any cell
+      gameState.winningCell = Math.floor(
+        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * (256 * 256)
+      );
+      gameState.winner = null;  // No winner if no cells were filled
+    }
+
+    // Update the playerBoard to reflect the winning cell
+    if (gameState.winningCell !== null) {
+      playerBoard[gameState.winningCell] = "winner";
+    }
+
+    gameState.isGameRunning = false;
+    broadcastGameState();
+    broadcastWinner();
+
+    // Start a new game after a 5-second delay
+    setTimeout(startNewGame, 5000);
+  } else {
+    // If not all cells are filled and time is not up, continue the game
+    gameState.isGameRunning = true;
+    broadcastGameState();
   }
-
-  // Mark the game as no longer running
-  gameState.isGameRunning = false;
-
-  // Broadcast the final game state to all players
-  broadcastGameState();
-
-  // Broadcast the winner to all players
-  broadcastWinner();
-
-  // Start a new game after a 5-second delay
-  setTimeout(startNewGame, 5000);
 }
 
-// Function to broadcast the winner of the game to all players
+/**
+ * Broadcasts the winner information to all connected players
+ */
 function broadcastWinner() {
   const message = JSON.stringify({
-    type: "winner",          // Message type indicating a winner has been declared
-    winner: gameState.winner,  // The winner's ID (or null if no winner)
+    type: "winner",
+    winner: gameState.winner,
+    winningCell: gameState.winningCell,
   });
 
-  // Send the winner message to all connected players
   for (const player of gameState.players.values()) {
     player.socket.send(message);
   }
 }
 
-// WebSocket handler for the game
+/**
+ * Handler for WebSocket connections
+ */
 export const handler: Handlers = {
   async GET(req) {
-    // Get the current user's session ID (from cookies or other session storage)
+    // Authenticate the user
     const sessionId = await getUserSessionId(req);
 
-    // If no session ID is found, respond with unauthorized status
     if (!sessionId) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // Fetch the user's profile based on the session ID
     const userProfile = await getUserProfileFromSession(sessionId);
     if (!userProfile) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // Upgrade the HTTP request to a WebSocket connection
+    // Upgrade the connection to a WebSocket
     const { socket, response } = Deno.upgradeWebSocket(req);
-    const playerId = userProfile.id;  // Get the player ID from the user's profile
-    const profileImage = userProfile.picture || "/img/avatar.webp";  // Use profile picture or a default avatar
+    const playerId = userProfile.id;
+    const profileImage = userProfile.picture || "/img/avatar.webp";
 
-    // Create a player object representing the connected user
+    // Create a new player object
     const player: Player = {
       id: playerId,
       profileImage: profileImage,
@@ -171,9 +226,9 @@ export const handler: Handlers = {
     // Add the player to the game state
     gameState.players.set(playerId, player);
 
-    // Set up WebSocket event handlers
+    // WebSocket event handlers
     socket.onopen = () => {
-      // Send player info to the client upon connection
+      // Send player info to the client
       socket.send(
         JSON.stringify({
           type: "playerInfo",
@@ -182,50 +237,42 @@ export const handler: Handlers = {
         }),
       );
 
-      // Broadcast the updated game state to all players
       broadcastGameState();
 
-      // If no game is running and this is the first player, start a new game
+      // Start a new game if this is the first player and no game is running
       if (!gameState.isGameRunning && gameState.players.size === 1) {
         startNewGame();
       }
     };
 
-    // Handle incoming messages from the client (e.g., player moves)
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      // If the player sends a "move" message, handle the move
       if (
         data.type === "move" && !gameState.winner && gameState.isGameRunning
       ) {
         const { index, playerId } = data;
-        // If the selected cell is not filled, mark it with the player's ID
         if (!isCellFilled(index)) {
           fillCell(index, playerId);
-          broadcastGameState();
-
-          // If all cells are filled (bitmask 0xFFFF), end the game
           if (bitmaskBoard === 0xFFFF) {
             endGame();
+          } else {
+            broadcastGameState();
           }
         }
       }
     };
 
-    // Handle WebSocket disconnection (when a player leaves)
     socket.onclose = () => {
-      // Remove the player from the game state
+      // Remove the player from the game state when they disconnect
       gameState.players.delete(playerId);
-      // Broadcast the updated game state to all players
       broadcastGameState();
     };
 
-    // Return the upgraded WebSocket response
     return response;
   },
 };
 
-// If there are players in the game but no game is running, start a new game
+// Start a new game if there are players and no game is running
 if (gameState.players.size > 0 && !gameState.isGameRunning) {
   startNewGame();
 }
