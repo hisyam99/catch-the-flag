@@ -25,7 +25,7 @@
     "$std/": "https://deno.land/std@0.216.0/"
   },
   "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" },
-  "nodeModulesDir": "auto",
+  "nodeModulesDir": true,
   "deploy": {
     "project": "5eae63b9-ea05-4e0a-9e0c-5ecdacf1b4ca",
     "exclude": ["**/node_modules"],
