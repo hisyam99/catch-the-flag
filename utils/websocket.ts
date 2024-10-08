@@ -33,10 +33,10 @@ export const connectWebSocket = (
 
     // Define endpoints for different board sizes. The key is the board size and the value is the API endpoint.
     const boardEndpoints: { [key: number]: string } = {
-      4: "/api/game/board/size/4x4", // Endpoint for 4x4 board
-      16: "/api/game/board/size/16x16", // Endpoint for 16x16 board
-      256: "/api/game/board/size/256x256", // Endpoint for 256x256 board
-      1024: "/api/game/board/size/1024x1024", // Endpoint for 1024x1024 board
+      4: "/api/game/board/size/4", // Endpoint for 4x4 board
+      16: "/api/game/board/size/16", // Endpoint for 16x16 board
+      256: "/api/game/board/size/256", // Endpoint for 256x256 board
+      1024: "/api/game/board/size/1024", // Endpoint for 1024x1024 board
     };
 
     // Select the appropriate endpoint based on the board size, defaulting to 4x4 if not found

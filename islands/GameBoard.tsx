@@ -18,9 +18,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerProfileImage, setPlayerProfileImage] = useState<string | null>(
-    null,
-  );
+  const [playerProfileImage, setPlayerProfileImage] = useState<string | null>(null);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -68,6 +66,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
   }, [sessionId, boardSize]);
 
   const handleCellClick = (index: number) => {
+    // Simplify the click handler - only check if the cell is empty and the game is still active
     if (board[index] === null && !winner && playerId) {
       sendMove(index, playerId);
     }
@@ -130,48 +129,50 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
       <div
         class="grid gap-2"
         style={`
-      grid-template-columns: repeat(${boardSize === 4 ? 4 : 16}, 1fr); 
-      grid-template-rows: repeat(${
-          boardSize === 4 ? 4 : Math.ceil(boardSize / 16)
-        }, 1fr);
-    `}
+          grid-template-columns: repeat(${boardSize === 4 ? 4 : 16}, 1fr); 
+          grid-template-rows: repeat(${
+            boardSize === 4 ? 4 : Math.ceil(boardSize / 16)
+          }, 1fr);
+        `}
       >
-        {board.map((cell, index) => (
-          <div
-            key={index}
-            class={`border-2 border-gray-300 flex items-center justify-center cursor-pointer ${
-              cell === "winner" ? "bg-red-500 animate-pulse" : ""
-            }`}
-            onClick={() => handleCellClick(index)}
-            style="aspect-ratio: 1;"
-          >
-            {cell && cell !== "winner" && (
-              <img
-                src={getPlayerProfileImage(cell)}
-                alt="Player"
-                class="w-3/4 h-3/4 rounded-full"
-              />
-            )}
-          </div>
-        ))}
+        {board.map((cell, index) => {
+          const isClickable = cell === null && !winner;
+
+          return (
+            <div
+              key={index}
+              class={`border-2 border-gray-300 flex items-center justify-center 
+                ${isClickable ? 'cursor-pointer hover:bg-gray-100' : ''} 
+                ${cell === "winner" ? "bg-red-500 animate-pulse" : ""}`}
+              onClick={() => isClickable && handleCellClick(index)}
+              style="aspect-ratio: 1;"
+            >
+              {cell && cell !== "winner" && (
+                <img
+                  src={getPlayerProfileImage(cell)}
+                  alt="Player"
+                  class="w-3/4 h-3/4 rounded-full"
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div class="mt-4">
-        {winner
-          ? (
-            winner === playerId
-              ? (
-                <div class="text-2xl font-bold text-green-500 animate-bounce">
-                  You won! 🎉
-                </div>
-              )
-              : (
-                <div class="text-xl text-red-500">
-                  You didn't win. Try again in the next round.
-                </div>
-              )
+        {winner ? (
+          winner === playerId ? (
+            <div class="text-2xl font-bold text-green-500 animate-bounce">
+              You won! 🎉
+            </div>
+          ) : (
+            <div class="text-xl text-red-500">
+              You didn't win. Try again in the next round.
+            </div>
           )
-          : <div>Time left: {timeLeft} seconds</div>}
+        ) : (
+          <div>Time left: {timeLeft} seconds</div>
+        )}
       </div>
 
       <div class="mt-2">

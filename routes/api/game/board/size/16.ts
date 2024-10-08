@@ -1,4 +1,3 @@
-// Import required modules and functions
 import { Handlers } from "$fresh/server.ts";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 import {
@@ -7,8 +6,16 @@ import {
 } from "@/plugins/kv_oauth.ts";
 
 // Constants
+const DEFAULT_GRID_SIZE = 0;
+
 // Game duration in milliseconds (1 minute)
 const GAME_DURATION = 60000;
+const filename = new URL(import.meta.url).pathname.split("/").pop();
+const match = filename?.match(/\d+/); // Look for a number in the filename
+
+// If a number is found, use it as the grid size, otherwise use default
+const gridSize = match ? parseInt(match[0], 10) : DEFAULT_GRID_SIZE;
+const TOTAL_CELLS = gridSize * gridSize;
 
 // Interfaces
 
@@ -38,13 +45,13 @@ interface GameState {
  * Bitmask representation of the game board
  * Each bit represents a cell, 1 if filled, 0 if empty
  */
-let bitmaskBoard: number = 0;
+let bitmaskBoard: bigint = 0n; // Using BigInt to handle 256 bits
 
 /**
  * Array representation of the game board
  * Each element is either null (empty) or a player's ID
  */
-let playerBoard: (string | null)[] = Array(16).fill(null);
+let playerBoard: (string | null)[] = Array(TOTAL_CELLS).fill(null);
 
 /**
  * The current state of the game
@@ -63,7 +70,7 @@ const gameState: GameState = {
  * @returns True if the cell is filled, false otherwise
  */
 function isCellFilled(index: number): boolean {
-  return (bitmaskBoard & (1 << index)) !== 0;
+  return (bitmaskBoard & (1n << BigInt(index))) !== 0n;
 }
 
 /**
@@ -72,7 +79,7 @@ function isCellFilled(index: number): boolean {
  * @param playerId - The ID of the player making the move
  */
 function fillCell(index: number, playerId: string) {
-  bitmaskBoard |= 1 << index;
+  bitmaskBoard |= 1n << BigInt(index);
   playerBoard[index] = playerId;
 }
 
@@ -105,8 +112,8 @@ function broadcastGameState() {
  */
 function startNewGame() {
   // Reset game state
-  bitmaskBoard = 0;
-  playerBoard = Array(16).fill(null);
+  bitmaskBoard = 0n;
+  playerBoard = Array(TOTAL_CELLS).fill(null);
   gameState.winner = null;
   gameState.winningCell = null;
   gameState.gameEndTime = Date.now() + GAME_DURATION;
@@ -139,27 +146,31 @@ function startNewGame() {
  * Ends the current game
  */
 function endGame() {
-  const allCellsFilled = bitmaskBoard === 0xFFFF;
+  const allCellsFilled = bitmaskBoard === (1n << BigInt(TOTAL_CELLS)) - 1n;
   const timeIsUp = Date.now() >= gameState.gameEndTime;
 
   if (allCellsFilled || timeIsUp) {
     // Get all filled cell indices
-    const filledCells = playerBoard.reduce((acc, cell, index) => 
-      cell !== null ? [...acc, index] : acc, [] as number[]);
-    
+    const filledCells = playerBoard.reduce(
+      (acc, cell, index) => cell !== null ? [...acc, index] : acc,
+      [] as number[],
+    );
+
     if (filledCells.length > 0) {
       // Randomly select a winning cell from filled cells
       const randomIndex = Math.floor(
-        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * filledCells.length
+        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) *
+          filledCells.length,
       );
       gameState.winningCell = filledCells[randomIndex];
       gameState.winner = playerBoard[gameState.winningCell];
     } else {
       // If no cells are filled, randomly select any cell
       gameState.winningCell = Math.floor(
-        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) * 16
+        crypto.getRandomValues(new Uint32Array(1))[0] / (2 ** 32 - 1) *
+          TOTAL_CELLS,
       );
-      gameState.winner = null;  // No winner if no cells were filled
+      gameState.winner = null; // No winner if no cells were filled
     }
 
     // Update the playerBoard to reflect the winning cell
@@ -254,7 +265,7 @@ export const handler: Handlers = {
         const { index, playerId } = data;
         if (!isCellFilled(index)) {
           fillCell(index, playerId);
-          if (bitmaskBoard === 0xFFFF) {
+          if (bitmaskBoard === (1n << BigInt(TOTAL_CELLS)) - 1n) {
             endGame();
           } else {
             broadcastGameState();
