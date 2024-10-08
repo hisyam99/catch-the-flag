@@ -44,7 +44,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
           } else if (data.type === "winner") {
             setWinner(data.winner);
             setTimeout(() => {
-              window.location.reload();
+              globalThis.location.reload();
             }, 5000);
           } else if (data.type === "playerInfo") {
             setPlayerId(data.id);
@@ -99,7 +99,7 @@ export default function GameBoard({ sessionId }: GameBoardProps) {
             terminated.
           </p>
           <button
-            onClick={() => window.location.href = "/login"}
+            onClick={() => globalThis.location.href = "/login"}
             class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
           >
             Go to Login
